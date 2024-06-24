@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,27 +7,22 @@ import {
   TouchableOpacity,
   Image,
   Button,
-  Animated,
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios"; // Import axios for making API calls
-import { useNavigation } from "@react-navigation/native"; // Import useNavigation hook
-
-// Notification component
-const Notification = ({ message }) => (
-  <View style={styles.notification}>
-    <Text style={styles.notificationText}>{message}</Text>
-  </View>
-);
+import axios from "axios";
+import { useNavigation } from "@react-navigation/native";
 
 const FavouriteScreen = () => {
-  const navigation = useNavigation(); // Access navigation using useNavigation hook
-
+  const navigation = useNavigation();
   const [orchids, setOrchids] = useState([]);
-  const [notification, setNotification] = useState("");
 
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", loadOrchidsFromStorage);
+
+    return unsubscribe;
+  }, [navigation]);
 
   const loadOrchidsFromStorage = async () => {
     try {
@@ -42,30 +37,14 @@ const FavouriteScreen = () => {
     }
   };
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("focus", loadOrchidsFromStorage);
-
-    return unsubscribe;
-  }, [navigation]);
-
   const removeOrchid = async (id) => {
     try {
       await AsyncStorage.removeItem(`orchid_${id}`);
-      await updateOrchidStatus(id, false); // Call API to update status to false
-
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 500, // Animation duration in milliseconds
-        useNativeDriver: true,
-      }).start(() => {
-        setOrchids((prevOrchids) =>
-          prevOrchids.filter((orchid) => orchid.id !== id)
-        );
-        setNotification("Orchid removed successfully!");
-        setTimeout(() => {
-          setNotification("");
-        }, 3000); // Clear notification after 3 seconds
-      });
+      setOrchids((prevOrchids) =>
+        prevOrchids.filter((orchid) => orchid.id !== id)
+      );
+      await updateOrchidStatus(id, false);
+      showAlert("Orchid Removed Successfully");
     } catch (error) {
       console.error("Error removing orchid from AsyncStorage:", error);
     }
@@ -79,12 +58,8 @@ const FavouriteScreen = () => {
       setOrchids([]);
       await Promise.all(
         orchids.map((orchid) => updateOrchidStatus(orchid.id, false))
-      ); // Call API to update status to false for all orchids
-
-      setNotification("All orchids cleared successfully!");
-      setTimeout(() => {
-        setNotification("");
-      }, 3000); // Clear notification after 3 seconds
+      );
+      showAlert("All Orchids Cleared Successfully");
     } catch (error) {
       console.error("Error clearing all orchids from AsyncStorage:", error);
     }
@@ -101,27 +76,46 @@ const FavouriteScreen = () => {
     }
   };
 
+  const showAlert = (message) => {
+    Alert.alert(
+      "Notification",
+      message,
+      [{ text: "OK", onPress: () => console.log("OK Pressed") }],
+      { cancelable: false }
+    );
+  };
+
   const renderOrchidItem = ({ item }) => (
-    <Animated.View style={{ ...styles.orchidItem, opacity: fadeAnim }}>
+    <View style={styles.orchidItem}>
       <Image source={{ uri: item.image }} style={styles.image} />
-      <Text style={styles.orchidName}>{item.name}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.orchidName}>{item.name}</Text>
+        <Text style={styles.additionalInfo}>
+          Weight: {item.weight}g | Rating: {item.rating}
+        </Text>
+      </View>
       <TouchableOpacity onPress={() => removeOrchid(item.id)}>
         <Feather name="trash" size={24} color="red" />
       </TouchableOpacity>
-    </Animated.View>
+    </View>
   );
 
   return (
     <View style={styles.container}>
-      {notification ? <Notification message={notification} /> : null}
-      <FlatList
-        data={orchids}
-        renderItem={renderOrchidItem}
-        keyExtractor={(item) => item.id.toString()}
-      />
-      <TouchableOpacity style={styles.clearButton} onPress={clearAllOrchids}>
-        <Text style={styles.clearButtonText}>Clear All</Text>
-      </TouchableOpacity>
+      {orchids.length === 0 ? (
+        <Text style={styles.noItemsText}>No Orchids found in favourites.</Text>
+      ) : (
+        <FlatList
+          data={orchids}
+          renderItem={renderOrchidItem}
+          keyExtractor={(item) => item.id.toString()}
+        />
+      )}
+      {orchids.length > 0 && (
+        <TouchableOpacity style={styles.clearButton} onPress={clearAllOrchids}>
+          <Text style={styles.clearButtonText}>Clear All</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -129,14 +123,14 @@ const FavouriteScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0f0f0", // Light gray background
+    backgroundColor: "#fff",
     padding: 20,
   },
   orchidItem: {
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "#ddd", // Lighter border color
+    borderBottomColor: "#ccc",
     paddingVertical: 10,
   },
   image: {
@@ -148,31 +142,27 @@ const styles = StyleSheet.create({
   orchidName: {
     fontSize: 18,
     fontWeight: "bold",
-    flex: 1,
-    color: "#333", // Dark text color
+  },
+  additionalInfo: {
+    fontSize: 14,
+    color: "#666",
   },
   clearButton: {
-    marginTop: 20,
-    backgroundColor: "#e74c3c", // Red background for clear button
-    padding: 10,
-    borderRadius: 5,
-    alignSelf: "center",
+    backgroundColor: "#1E90FF", // Màu xanh dương
+    borderRadius: 10, // Độ bo tròn
+    padding: 15,
+    alignItems: "center",
+    marginTop: 20, // Khoảng cách với FlatList
   },
   clearButtonText: {
-    color: "#fff", // White text color for clear button
-    fontSize: 16,
-    textAlign: "center",
+    color: "#fff", // Màu chữ trắng
+    fontSize: 18,
+    fontWeight: "bold",
   },
-  notification: {
-    backgroundColor: "#2ecc71", // Green background color
-    padding: 10,
-    margin: 10,
-    borderRadius: 5,
-  },
-  notificationText: {
-    color: "#fff", // White text color
-    fontSize: 16,
+  noItemsText: {
+    fontSize: 18,
     textAlign: "center",
+    marginTop: 50,
   },
 });
 

@@ -34,7 +34,14 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  const toggleFavorite = async (id, currentStatus, image, name) => {
+  const toggleFavorite = async (
+    id,
+    currentStatus,
+    image,
+    name,
+    weight,
+    rating
+  ) => {
     try {
       const newStatus = !currentStatus;
       // Update favorite status in API
@@ -47,7 +54,7 @@ export default function HomeScreen({ navigation }) {
       if (newStatus) {
         await AsyncStorage.setItem(
           `orchid_${id}`,
-          JSON.stringify({ id, status: newStatus, image, name })
+          JSON.stringify({ id, status: newStatus, image, name, weight, rating })
         );
         showNotification(`${name} added to favorites!`);
       } else {
@@ -84,13 +91,26 @@ export default function HomeScreen({ navigation }) {
       </View>
       <View style={styles.textContainer}>
         <Text style={styles.orchidName}>{item.name}</Text>
+        <Text style={styles.orchidInfo}>
+          Rating: {item.rating} | Origin: {item.origin}
+        </Text>
         <TouchableOpacity
           style={[
             styles.favoriteButton,
-            { backgroundColor: item.status ? "#2196F3" : "#FFFFFF" },
+            {
+              backgroundColor: item.status ? "#2196F3" : "#FFFFFF",
+              borderColor: item.status ? "#FFFFFF" : "#2196F3",
+            },
           ]}
           onPress={() =>
-            toggleFavorite(item.id, item.status, item.image, item.name)
+            toggleFavorite(
+              item.id,
+              item.status,
+              item.image,
+              item.name,
+              item.weight,
+              item.rating
+            )
           }
         >
           <Icon
@@ -119,7 +139,7 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E3F2FD", // Light blue background
+    backgroundColor: "#E3F2FD",
     paddingHorizontal: 16,
     paddingTop: 16,
   },
@@ -129,7 +149,7 @@ const styles = StyleSheet.create({
   cardContainer: {
     flexDirection: "row",
     marginBottom: 12,
-    backgroundColor: "#FFFFFF", // White cards
+    backgroundColor: "#FFFFFF",
     borderRadius: 8,
     shadowColor: "#000",
     shadowOffset: {
@@ -162,11 +182,17 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#333333",
   },
+  orchidInfo: {
+    fontSize: 14,
+    color: "#666666",
+    marginBottom: 4,
+  },
   favoriteButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
   },
 });
