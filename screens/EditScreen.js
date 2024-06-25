@@ -43,7 +43,7 @@ const EditScreen = ({ navigation, route }) => {
         updatedOrchid
       );
       Alert.alert("Success", "Orchid updated successfully!");
-      navigation.goBack(); // Navigate back to previous screen
+      navigation.goBack();
     } catch (error) {
       console.error("Error updating orchid:", error);
       Alert.alert("Error", "Failed to update orchid. Please try again later.");

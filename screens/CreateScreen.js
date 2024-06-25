@@ -12,6 +12,7 @@ import { Formik } from "formik";
 import * as yup from "yup";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+// import uploadImage from "../utils/uploadImage";
 
 const validationSchema = yup.object().shape({
   name: yup.string().required("Name is required"),
@@ -46,16 +47,17 @@ const validationSchema = yup.object().shape({
 const CreateScreen = ({ navigation }) => {
   const handleCreateOrchid = async (values) => {
     try {
-      // POST request to mock API
+      // const imageUrl = await uploadImage(values.image, values.name);
+      // const orchidData = { ...values, image: imageUrl };
       await axios.post(
         "https://64b391b20efb99d862680d7a.mockapi.io/orchids",
         values
+        // orchidData
       );
 
-      // Optionally, save to AsyncStorage if needed
       await AsyncStorage.setItem(`orchid_${values.id}`, JSON.stringify(values));
+      // await AsyncStorage.setItem(`orchid_${values.id}`, JSON.stringify(orchidData));
 
-      // Display success message
       Alert.alert("Success", "Orchid created successfully", [
         { text: "OK", onPress: () => navigation.goBack() },
       ]);
@@ -299,7 +301,7 @@ const CreateScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#FFFFFF",
     padding: 16,
   },
   formGroup: {
@@ -308,6 +310,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     marginBottom: 8,
+    color: "#333333",
   },
   input: {
     borderWidth: 1,
@@ -315,6 +318,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     fontSize: 16,
+    color: "#333333",
   },
   createButton: {
     backgroundColor: "#2196F3",
