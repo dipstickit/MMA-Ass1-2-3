@@ -186,6 +186,7 @@ function HomeScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.title}>Movix Collection</Text>
       <TouchableOpacity
         style={styles.createButton}
         onPress={navigateToCreateScreen}
@@ -302,6 +303,12 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333333",
+    textAlign: "center",
   },
 });
 
