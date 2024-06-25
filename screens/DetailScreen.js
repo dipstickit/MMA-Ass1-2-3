@@ -122,7 +122,7 @@ export default function DetailScreen({ route, navigation }) {
             <View style={styles.detailItem}>
               <Text style={styles.detailLabel}>Price</Text>
               <Text style={styles.detailText}>
-                {orchid ? "$" + orchid.price : ""}
+                {orchid ? orchid.price + "$" : ""}
               </Text>
             </View>
             <View style={styles.detailItem}>

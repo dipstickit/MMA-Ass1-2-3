@@ -26,6 +26,7 @@ const EditScreen = ({ navigation, route }) => {
         `https://64b391b20efb99d862680d7a.mockapi.io/orchids/${id}`
       );
       const { name, weight, rating, origin } = response.data;
+      console.log(typeof weight);
       setName(name);
       setWeight(weight);
       setRating(rating);
@@ -62,8 +63,8 @@ const EditScreen = ({ navigation, route }) => {
       <Text style={styles.label}>Weight</Text>
       <TextInput
         style={styles.input}
-        value={weight}
-        onChangeText={setWeight}
+        value={weight.toString()}
+        onChangeText={(text) => setWeight(Number(text))}
         placeholder="Enter weight"
         keyboardType="numeric"
       />
