@@ -12,16 +12,26 @@ import {
 import Icon from "react-native-vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function HomeScreen({ navigation }) {
+function HomeScreen({ navigation, route }) {
   const [orchids, setOrchids] = useState([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showLoginNotification, setShowLoginNotification] = useState(false);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
       fetchOrchids();
+      checkLoginStatus();
     });
 
     return unsubscribe;
-  }, []);
+  }, [navigation, route]);
+
+  useEffect(() => {
+    if (isLoggedIn && !showLoginNotification) {
+      setShowLoginNotification(true);
+      showLoginSuccessNotification();
+    }
+  }, [isLoggedIn]);
 
   const fetchOrchids = async () => {
     try {
@@ -31,6 +41,22 @@ export default function HomeScreen({ navigation }) {
       setOrchids(response.data);
     } catch (error) {
       console.error("Error fetching orchids:", error);
+    }
+  };
+
+  const checkLoginStatus = async () => {
+    const userToken = await AsyncStorage.getItem("userToken");
+    if (userToken) {
+      setIsLoggedIn(true);
+    }
+  };
+
+  const showLoginSuccessNotification = async () => {
+    try {
+      await AsyncStorage.setItem("loginNotificationShown", "true");
+      Alert.alert("Notification", "Login successful!");
+    } catch (error) {
+      console.error("Error saving login notification status:", error);
     }
   };
 
@@ -44,13 +70,11 @@ export default function HomeScreen({ navigation }) {
   ) => {
     try {
       const newStatus = !currentStatus;
-      // Update favorite status in API
       await axios.put(
         `https://64b391b20efb99d862680d7a.mockapi.io/orchids/${id}`,
         { status: newStatus }
       );
 
-      // Update orchid status in AsyncStorage
       if (newStatus) {
         await AsyncStorage.setItem(
           `orchid_${id}`,
@@ -62,7 +86,6 @@ export default function HomeScreen({ navigation }) {
         showNotification(`${name} removed from favorites!`);
       }
 
-      // Update orchid status in the local state
       setOrchids((prevOrchids) =>
         prevOrchids.map((orchid) =>
           orchid.id === id ? { ...orchid, status: newStatus } : orchid
@@ -73,8 +96,30 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  const deleteOrchid = async (id, name) => {
+    try {
+      await axios.delete(
+        `https://64b391b20efb99d862680d7a.mockapi.io/orchids/${id}`
+      );
+      setOrchids((prevOrchids) =>
+        prevOrchids.filter((orchid) => orchid.id !== id)
+      );
+      showNotification(`${name} deleted successfully!`);
+    } catch (error) {
+      console.error("Error deleting orchid:", error);
+    }
+  };
+
   const showNotification = (message) => {
     Alert.alert("Notification", message);
+  };
+
+  const navigateToEditScreen = (id) => {
+    navigation.navigate("EditScreen", { id });
+  };
+
+  const navigateToCreateScreen = () => {
+    navigation.navigate("CreateScreen");
   };
 
   const renderOrchidItem = ({ item }) => (
@@ -94,37 +139,59 @@ export default function HomeScreen({ navigation }) {
         <Text style={styles.orchidInfo}>
           Rating: {item.rating} | Origin: {item.origin}
         </Text>
-        <TouchableOpacity
-          style={[
-            styles.favoriteButton,
-            {
-              backgroundColor: item.status ? "#2196F3" : "#FFFFFF",
-              borderColor: item.status ? "#FFFFFF" : "#2196F3",
-            },
-          ]}
-          onPress={() =>
-            toggleFavorite(
-              item.id,
-              item.status,
-              item.image,
-              item.name,
-              item.weight,
-              item.rating
-            )
-          }
-        >
-          <Icon
-            name={item.status ? "favorite" : "favorite-border"}
-            size={24}
-            color={item.status ? "#FFFFFF" : "#2196F3"}
-          />
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[
+              styles.favoriteButton,
+              {
+                backgroundColor: item.status ? "#2196F3" : "#FFFFFF",
+                borderColor: item.status ? "#FFFFFF" : "#2196F3",
+              },
+            ]}
+            onPress={() =>
+              toggleFavorite(
+                item.id,
+                item.status,
+                item.image,
+                item.name,
+                item.weight,
+                item.rating
+              )
+            }
+          >
+            <Icon
+              name={item.status ? "favorite" : "favorite-border"}
+              size={24}
+              color={item.status ? "#FFFFFF" : "#2196F3"}
+            />
+          </TouchableOpacity>
+          <View style={styles.rightButtons}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => navigateToEditScreen(item.id)}
+            >
+              <Icon name="edit" size={24} color="#2196F3" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => deleteOrchid(item.id, item.name)}
+            >
+              <Icon name="delete" size={24} color="#FF0000" />
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={navigateToCreateScreen}
+      >
+        <Icon name="add" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
       <FlatList
         style={styles.flatList}
         data={orchids}
@@ -187,6 +254,15 @@ const styles = StyleSheet.create({
     color: "#666666",
     marginBottom: 4,
   },
+  buttonContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  rightButtons: {
+    flexDirection: "row",
+    marginLeft: "auto",
+  },
   favoriteButton: {
     width: 40,
     height: 40,
@@ -194,5 +270,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
+    marginRight: 8,
+  },
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  deleteButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  createButton: {
+    backgroundColor: "#2196F3",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignSelf: "flex-end",
+    marginBottom: 16,
+    borderRadius: 45,
+  },
+  createButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });
+
+export default HomeScreen;
